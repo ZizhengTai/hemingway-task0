@@ -1,6 +1,10 @@
-import scala.math.{exp, log}
+import scala.math.{log}
 import scala.util.Random
 
+import breeze.linalg._
+import breeze.numerics.{exp}
+
+/*
 object Implicits {
   implicit class ArrayLinearAlgebraOps[A](val xs: Array[A]) extends AnyVal {
     def unary_-(implicit n: Numeric[A]): Array[A] = { val ys = xs.clone; ys transform n.negate; ys }
@@ -68,17 +72,16 @@ object Implicits {
     }
   }
 }
+*/
 
 class LogisticRegression(
   val numClasses: Int,
   val stepSize: Double,
   val regularizationFactor: Double
 ) {
-  import Implicits._
-
   /** Returns the model parameters. */
-  def params: Array[Array[Double]] = _params
-  private[this] var _params: Array[Array[Double]] = _
+  def params: DenseMatrix[Double] = _params  //Array[Array[Double]] = _params
+  private[this] var _params: DenseMatrix[Double] = _
 
   /** Trains the model on the given dataset.
    *
@@ -90,12 +93,12 @@ class LogisticRegression(
     assert(xs.length == ys.length)
     val trainSize = xs.length
 
-    _params = Array.fill(numClasses, xs(0).length)(Random.nextDouble / 1e3)
+    _params = DenseMatrix.fill(numClasses, xs(0).length)((Random.nextDouble - 0.5) / 1e3)
 
     for (i <- 0 until maxIterations) {
       // Pick one random datapoint
       val n = Random.nextInt(trainSize)
-      val x = xs(n)
+      val x = DenseVector(xs(n))
       val y = ys(n)
 
       // Update all model parameters
@@ -111,32 +114,34 @@ class LogisticRegression(
    *
    *  @param x datapoint to predict label for
    */
-  def predict(x: Array[Double]): Int =
-    Array.tabulate(numClasses)(params(_) dot x).argmax
+  def predict(x: DenseVector[Double]): Int =
+    argmax(DenseVector.tabulate(numClasses)(i => params.t(::, i) dot x))
 
   /** Performs one iteration of stochastic gradient descent.
    *
-   *  @param x training datapoing
+   *  @param x training datapoint
    *  @param y training label
    */
-  private def update(x: Array[Double], y: Int): Unit = {
-    val expDots = Array.tabulate(numClasses)(i => exp(params(i) dot x))
-    val expDotsSum = expDots.sum
+  private def update(x: DenseVector[Double], y: Int): Unit = {
+    val expDots = exp(DenseVector.tabulate(numClasses)(i => params.t(::, i) dot x))
+    val expDotsSum = sum(expDots)
 
     /** Computes the gradient of loss w.r.t. the i-th model parameter. */
-    def grad(i: Int): Array[Double] = {
-      val g = if (y == i) -x else new Array[Double](x.length)
-      g += x * (expDots(i) / expDotsSum)
+    def grad(i: Int, g: DenseVector[Double]): Unit = {
+      if (y == i) g := -x else g := 0.0
+      g += expDots(i) / expDotsSum * x
 
       // L2 regularization
-      g += params(i) * (2 * regularizationFactor)
-
-      g
+      g += 2 * regularizationFactor * params.t(::, i)
     }
 
     // Update all model parameters
-    for (i <- 0 until params.length) {
-      params(i) -= grad(i) * stepSize
+    val g = DenseVector.zeros[Double](x.length)
+    for (i <- 0 until params.rows) {
+      grad(i, g)
+      g *= stepSize
+
+      params.t(::, i) -= g
     }
   }
 
@@ -145,6 +150,7 @@ class LogisticRegression(
    *  @param xs datapoints
    *  @param ys labels
    */
+  /*
   def loss(xs: Array[Array[Double]], ys: Array[Int]): Double = {
     var l = 0.0
 
@@ -169,5 +175,5 @@ class LogisticRegression(
     l += l1 / xs.length
 
     l
-  }
+  }*/
 }
