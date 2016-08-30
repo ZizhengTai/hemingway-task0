@@ -1,10 +1,12 @@
 import java.io.FileInputStream
 
+import breeze.linalg.DenseVector
+
 class MnistLoader(path: String) {
   val height = 28
   val width = 28
 
-  def getImages(filename: String, train: Boolean): Array[Array[Double]] = {
+  def getImages(filename: String, train: Boolean): Array[DenseVector[Double]] = {
     val stream = new FileInputStream(path + filename)
     val numImages = if (train) 60000 else 10000
     val images = new Array[Array[Double]](numImages)
@@ -35,7 +37,7 @@ class MnistLoader(path: String) {
       images(i)(imageBuffer.length) = 1
       i += 1
     }
-    images
+    images map (DenseVector(_))
   }
 
   def getLabels(filename: String, train: Boolean): Array[Int] = {

@@ -9,7 +9,7 @@ class LogisticRegression(
   val regularizationFactor: Double
 ) {
   /** Returns the model parameters. */
-  def params: DenseMatrix[Double] = _params  //Array[Array[Double]] = _params
+  def params: DenseMatrix[Double] = _params
   private[this] var _params: DenseMatrix[Double] = _
 
   /** Trains the model on the given dataset.
@@ -18,7 +18,7 @@ class LogisticRegression(
    *  @param ys training labels
    *  @param maxIterations maximum number of iterations
    */
-  def train(xs: Array[Array[Double]], ys: Array[Int], maxIterations: Int = 100000): Unit = {
+  def train(xs: Array[DenseVector[Double]], ys: Array[Int], maxIterations: Int = 100000): Unit = {
     assert(xs.length == ys.length)
     val trainSize = xs.length
 
@@ -27,7 +27,7 @@ class LogisticRegression(
     for (i <- 0 until maxIterations) {
       // Pick one random datapoint
       val n = Random.nextInt(trainSize)
-      val x = DenseVector(xs(n))
+      val x = xs(n)
       val y = ys(n)
 
       // Update all model parameters
