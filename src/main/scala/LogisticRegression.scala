@@ -1,78 +1,7 @@
-import scala.math.{log}
 import scala.util.Random
 
 import breeze.linalg._
-import breeze.numerics.{exp}
-
-/*
-object Implicits {
-  implicit class ArrayLinearAlgebraOps[A](val xs: Array[A]) extends AnyVal {
-    def unary_-(implicit n: Numeric[A]): Array[A] = { val ys = xs.clone; ys transform n.negate; ys }
-
-    def +=(x: A)(implicit n: Numeric[A]): Unit = xs transform (n.plus(_, x))
-    def -=(x: A)(implicit n: Numeric[A]): Unit = xs transform (n.minus(_, x))
-    def *=(x: A)(implicit n: Numeric[A]): Unit = xs transform (n.times(_, x))
-    def /=(x: A)(implicit f: Fractional[A]): Unit = xs transform (f.div(_, x))
-
-    def +(x: A)(implicit n: Numeric[A]): Array[A] = { val ys = xs.clone; ys += x; ys }
-    def -(x: A)(implicit n: Numeric[A]): Array[A] = { val ys = xs.clone; ys -= x; ys }
-    def *(x: A)(implicit n: Numeric[A]): Array[A] = { val ys = xs.clone; ys *= x; ys }
-    def /(x: A)(implicit f: Fractional[A]): Array[A] = { val ys = xs.clone; ys /= x; ys }
-
-    def +=(ys: Seq[A])(implicit n: Numeric[A]): Unit =
-      ys.iterator.zipWithIndex foreach { case (y, i) => xs(i) = n.plus(xs(i), y) }
-    def -=(ys: Seq[A])(implicit n: Numeric[A]): Unit =
-      ys.iterator.zipWithIndex foreach { case (y, i) => xs(i) = n.minus(xs(i), y) }
-    def *=(ys: Seq[A])(implicit n: Numeric[A]): Unit =
-      ys.iterator.zipWithIndex foreach { case (y, i) => xs(i) = n.times(xs(i), y) }
-    def /=(ys: Seq[A])(implicit f: Fractional[A]): Unit =
-      ys.iterator.zipWithIndex foreach { case (y, i) => xs(i) = f.div(xs(i), y) }
-
-    def +(ys: Seq[A])(implicit n: Numeric[A]): Array[A] = { val zs = xs.clone; zs += ys; zs }
-    def -(ys: Seq[A])(implicit n: Numeric[A]): Array[A] = { val zs = xs.clone; zs -= ys; zs }
-    def *(ys: Seq[A])(implicit n: Numeric[A]): Array[A] = { val zs = xs.clone; zs *= ys; zs }
-    def /(ys: Seq[A])(implicit f: Fractional[A]): Array[A] = { val zs = xs.clone; zs /= ys; zs }
-
-    def dot(ys: IndexedSeq[A])(implicit n: Numeric[A]): A = {
-      var sum = n.zero
-      var i = 0
-      while (i < xs.length) {
-        sum = n.plus(sum, n.times(xs(i), ys(i)))
-        i += 1
-      }
-      sum
-    }
-
-    def argmax(implicit n: Numeric[A]): Int = {
-      var maxIndex = 0
-      var max = xs(0)
-      var i = 1
-      while (i < xs.length) {
-        if (n.gt(xs(i), max)) {
-          maxIndex = i
-          max = xs(i)
-        }
-        i += 1
-      }
-      maxIndex
-    }
-
-    def argmin(implicit n: Numeric[A]): Int = {
-      var minIndex = 0
-      var min = xs(0)
-      var i = 1
-      while (i < xs.length) {
-        if (n.lt(xs(i), min)) {
-          minIndex = i
-          min = xs(i)
-        }
-        i += 1
-      }
-      minIndex
-    }
-  }
-}
-*/
+import breeze.numerics.{exp, log}
 
 class LogisticRegression(
   val numClasses: Int,
