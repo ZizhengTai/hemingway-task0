@@ -2,11 +2,13 @@ import java.io.FileInputStream
 
 import breeze.linalg.DenseVector
 
+case class LabeledPoint(label: Int, features: Array[Double])
+
 class MnistLoader(path: String) {
   val height = 28
   val width = 28
 
-  def getImages(filename: String, train: Boolean): Array[DenseVector[Double]] = {
+  def getImages(filename: String, train: Boolean): Array[Array[Double]] = {
     val stream = new FileInputStream(path + filename)
     val numImages = if (train) 60000 else 10000
     val images = new Array[Array[Double]](numImages)
@@ -31,13 +33,13 @@ class MnistLoader(path: String) {
       images(i) = new Array[Double](imageBuffer.length + 1)
       var j = 0
       while (j < imageBuffer.length) {
-        images(i)(j) = imageBuffer(j).toDouble / 255 - 0.5
+        images(i)(j) = if (imageBuffer(j) != 0) 1.0 else 0.0
         j += 1
       }
       images(i)(imageBuffer.length) = 1
       i += 1
     }
-    images map (DenseVector(_))
+    images
   }
 
   def getLabels(filename: String, train: Boolean): Array[Int] = {
