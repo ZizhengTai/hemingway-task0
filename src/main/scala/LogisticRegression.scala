@@ -1,3 +1,5 @@
+package hemingway
+
 import scala.util.Random
 
 import breeze.linalg.{argmax, sum, DenseMatrix, DenseVector}

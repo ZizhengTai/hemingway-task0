@@ -1,8 +1,6 @@
+package hemingway
+
 import java.io.FileInputStream
-
-import breeze.linalg.DenseVector
-
-case class LabeledPoint(label: Int, features: Array[Double])
 
 class MnistLoader(path: String) {
   val height = 28
@@ -62,4 +60,7 @@ class MnistLoader(path: String) {
   val trainLabels = getLabels("train-labels.idx1-ubyte", true)
   val testImages = getImages("t10k-images.idx3-ubyte", false)
   val testLabels = getLabels("t10k-labels.idx1-ubyte", false)
+
+  val trainingSet = LabeledDataset((trainLabels, trainImages).zipped map LabeledPoint)
+  val testSet = LabeledDataset((testLabels, testImages).zipped map LabeledPoint)
 }
