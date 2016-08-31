@@ -14,7 +14,7 @@ object Main {
 
     val conf = new SparkConf()
       .setAppName("hemingway-task0")
-      .setMaster("local[8]")
+      .setMaster(s"local[$numMachines]")
     implicit val sc = new SparkContext(conf)
 
     val data = new MnistLoader(dataPath)
