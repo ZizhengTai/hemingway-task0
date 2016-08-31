@@ -1,7 +1,7 @@
 package hemingway
 
 import breeze.linalg.{DenseVector, DenseMatrix, argmax}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.{SparkConf, SparkContext}
 
 object Main {
 
@@ -13,22 +13,20 @@ object Main {
     val maxIterations = args(4).toInt
     val numMachines = args(5).toInt
 
-    val spark = SparkSession.builder
-      .master("local")
-      .appName("hemingway-task0")
-      .getOrCreate()
-
-    import spark.implicits._
+    val conf = new SparkConf()
+      .setAppName("hemingway-task0")
+      .setMaster("local")
+    val sc = new SparkContext(conf)
 
     val data = new MnistLoader(dataPath)
-    val trainingSets = data.trainingSet.split(numMachines).toDS
+    val distData = sc.parallelize(data.trainingSet.split(numMachines))
 
     val avgParams = new DenseMatrix(
       numClasses,
       data.trainImages(0).length,
-      trainingSets map { labeledDataset =>
-        val x = labeledDataset.data map (lp => DenseVector(lp.features))
-        val y = labeledDataset.data map (_.label)
+      distData map { labeledDataset =>
+        val x = labeledDataset.features map (DenseVector(_))
+        val y = labeledDataset.labels
 
         val regr = new LogisticRegression(numClasses, stepSize, regularizationFactor)
         regr.train(x, y, maxIterations)

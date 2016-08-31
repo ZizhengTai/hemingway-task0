@@ -53,7 +53,7 @@ class MnistLoader(path: String) {
 
     val labels = new Array[Byte](numLabels)
     stream.read(labels)
-    labels.map(e => (e & 0xFF).toInt)
+    labels.map(e => e & 0xFF)
   }
 
   val trainImages = getImages("train-images.idx3-ubyte", true)
@@ -61,6 +61,6 @@ class MnistLoader(path: String) {
   val testImages = getImages("t10k-images.idx3-ubyte", false)
   val testLabels = getLabels("t10k-labels.idx1-ubyte", false)
 
-  val trainingSet = LabeledDataset((trainLabels, trainImages).zipped map LabeledPoint)
-  val testSet = LabeledDataset((testLabels, testImages).zipped map LabeledPoint)
+  val trainingSet = LabeledDataset(trainLabels, trainImages)
+  val testSet = LabeledDataset(testLabels, testImages)
 }
