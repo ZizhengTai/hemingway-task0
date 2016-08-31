@@ -1,5 +1,7 @@
 package hemingway
 
+import scala.util.Random
+
 case class LabeledDataset(labels: Array[Int], features: Array[Array[Double]]) {
   require(labels.length == features.length)
 
@@ -17,5 +19,10 @@ case class LabeledDataset(labels: Array[Int], features: Array[Array[Double]]) {
       val until = divPoints(i + 1)
       LabeledDataset(labels.slice(from, until), features.slice(from, until))
     }
+  }
+
+  def shuffle: LabeledDataset = {
+    val shuffled = breeze.linalg.shuffle(labels zip features)
+    (LabeledDataset.apply _).tupled(shuffled.unzip)
   }
 }

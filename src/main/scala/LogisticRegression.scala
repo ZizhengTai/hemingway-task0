@@ -3,48 +3,27 @@ package hemingway
 import scala.util.Random
 
 import breeze.linalg.{argmax, sum, DenseMatrix, DenseVector}
-import breeze.numerics.{exp, log}
+import breeze.numerics.exp
 
 class LogisticRegression(
   val numClasses: Int,
   val stepSize: Double,
-  val regularizationFactor: Double
-) {
-  /** Returns the model parameters. */
-  def params: DenseMatrix[Double] = _params
-  private[this] var _params: DenseMatrix[Double] = _
+  val regularizationFactor: Double) extends LinearClassifier {
 
   /** Trains the model on the given dataset.
    *
-   *  @param xs training datapoints
-   *  @param ys training labels
-   *  @param maxIterations maximum number of iterations
+   *  @param data training dataset
+   *  @param init initial model parameters
    */
-  def train(xs: IndexedSeq[DenseVector[Double]], ys: IndexedSeq[Int], maxIterations: Int = 100000): Unit = {
-    _params = DenseMatrix.fill(numClasses, xs(0).length)((Random.nextDouble - 0.5) / 1e3)
+  def train(data: LabeledDataset, init: Option[DenseMatrix[Double]] = None): Unit = {
+    _params = init getOrElse DenseMatrix.fill(numClasses, data.features(0).length)((Random.nextDouble - 0.5) / 1e3)
 
     val gradBuffer = DenseMatrix.zeros[Double](params.rows, params.cols)
 
-    for (i <- 0 until maxIterations) {
-      // Pick one random datapoint
-      val n = Random.nextInt(xs.length)
-      val x = xs(n)
-      val y = ys(n)
-
-      // Update all model parameters
-      update(x, y, gradBuffer)
-
-      if (i % 1000 == 0) {
-        println(i)
-      }
+    (data.features, data.labels).zipped foreach { (x, y) =>
+      update(DenseVector(x), y, gradBuffer)
     }
   }
-
-  /** Predicts the label for the given datapoint.
-   *
-   *  @param x datapoint to predict label for
-   */
-  def predict(x: DenseVector[Double]): Int = argmax(params * x)
 
   /** Performs one iteration of stochastic gradient descent.
    *
@@ -69,11 +48,4 @@ class LogisticRegression(
     gradBuffer *= stepSize
     params -= gradBuffer
   }
-
-  /** Computes the loss against the given dataset.
-   *
-   *  @param xs datapoints
-   *  @param ys labels
-   */
-  def loss(xs: IndexedSeq[DenseVector[Double]], ys: IndexedSeq[Int]): Double = ???
 }
