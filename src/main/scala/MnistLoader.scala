@@ -7,7 +7,7 @@ class MnistLoader(path: String) {
   val width = 28
 
   def getImages(filename: String, train: Boolean): Array[Array[Double]] = {
-    val stream = new FileInputStream(path + filename)
+    val stream = new FileInputStream(path + "/" + filename)
     val numImages = if (train) 60000 else 10000
     val images = new Array[Array[Double]](numImages)
 
@@ -41,7 +41,7 @@ class MnistLoader(path: String) {
   }
 
   def getLabels(filename: String, train: Boolean): Array[Int] = {
-    val stream = new FileInputStream(path + filename)
+    val stream = new FileInputStream(path + "/" + filename)
     val numLabels = if (train) 60000 else 10000
 
     val magicNumber = new Array[Byte](4)

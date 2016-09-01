@@ -2,11 +2,12 @@ package hemingway
 
 import scala.util.Random
 
-import breeze.linalg.{argmax, sum, DenseMatrix, DenseVector}
+import breeze.linalg.{sum, DenseMatrix, DenseVector}
 import breeze.numerics.exp
 
 class LogisticRegression(
   val numClasses: Int,
+  val numFeatures: Int,
   val stepSize: Double,
   val regularizationFactor: Double) extends LinearClassifier {
 
@@ -16,9 +17,9 @@ class LogisticRegression(
    *  @param init initial model parameters
    */
   def train(data: LabeledDataset, init: Option[DenseMatrix[Double]] = None): Unit = {
-    _params = init getOrElse DenseMatrix.fill(numClasses, data.features(0).length)((Random.nextDouble - 0.5) / 1e3)
+    _params = init getOrElse DenseMatrix.fill(numClasses, numFeatures)((Random.nextDouble - 0.5) / 1e3)
 
-    val gradBuffer = DenseMatrix.zeros[Double](params.rows, params.cols)
+    val gradBuffer = DenseMatrix.zeros[Double](numClasses, numFeatures)
 
     (data.features, data.labels).zipped foreach { (x, y) =>
       update(DenseVector(x), y, gradBuffer)

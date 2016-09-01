@@ -1,7 +1,5 @@
 package hemingway
 
-import scala.util.Random
-
 case class LabeledDataset(labels: Array[Int], features: Array[Array[Double]]) {
   require(labels.length == features.length)
 
