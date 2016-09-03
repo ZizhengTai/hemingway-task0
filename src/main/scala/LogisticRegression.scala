@@ -18,6 +18,8 @@ class LogisticRegression(
    */
   def train(data: LabeledDataset, init: Option[DenseMatrix[Double]] = None): Unit = {
     _params = init getOrElse DenseMatrix.fill(numClasses, numFeatures)((Random.nextDouble - 0.5) / 1e3)
+    assert(params.rows == numClasses)
+    assert(params.cols == numFeatures)
 
     val gradBuffer = DenseMatrix.zeros[Double](numClasses, numFeatures)
 

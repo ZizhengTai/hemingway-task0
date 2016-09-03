@@ -16,7 +16,7 @@ class DistributedLogisticRegression(
   val stepSize: Double,
   val regularizationFactor: Double) extends LinearClassifier {
 
-  case class IterationInfo(loss: Double, iterTime: Duration, totalTime: Duration)
+  import DistributedLogisticRegression._
 
   def iterationInfo: Seq[IterationInfo] = _iterationInfo
   private[this] var _iterationInfo: ArrayBuffer[IterationInfo] = _
@@ -33,6 +33,9 @@ class DistributedLogisticRegression(
             init: Option[DenseMatrix[Double]] = None)
            (implicit sc: SparkContext): Unit = {
     _params = init getOrElse DenseMatrix.fill(numClasses, numFeatures)((Random.nextDouble - 0.5) / 1e3)
+    assert(params.rows == numClasses)
+    assert(params.cols == numFeatures)
+
     _iterationInfo = ArrayBuffer.empty
 
     val start = System.currentTimeMillis
@@ -103,4 +106,8 @@ class DistributedLogisticRegression(
 
     l + h
   }
+}
+
+object DistributedLogisticRegression {
+  case class IterationInfo(loss: Double, iterTime: Duration, totalTime: Duration)
 }
