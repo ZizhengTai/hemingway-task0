@@ -9,7 +9,7 @@ class LogisticRegression(
   val numClasses: Int,
   val numFeatures: Int,
   val stepSize: Double,
-  val regularizationFactor: Double) extends LinearClassifier {
+  val regParam: Double) extends LinearClassifier {
 
   /** Trains the model on the given dataset.
    *
@@ -37,7 +37,7 @@ class LogisticRegression(
   private[this] def update(x: DenseVector[Double], y: Int, gradBuffer: DenseMatrix[Double]): Unit = {
     /** Computes the gradient matrix of loss w.r.t. the model parameters. */
     def computeGradient(g: DenseMatrix[Double]): Unit = {
-      g := 2 * regularizationFactor * params  // L2 regularization
+      g := regParam * params  // L2 regularization
 
       g(y, ::) -= x.t
 

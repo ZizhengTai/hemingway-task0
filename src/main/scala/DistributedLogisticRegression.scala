@@ -13,8 +13,11 @@ class DistributedLogisticRegression(
   val numMachines: Int,
   val numClasses: Int,
   val numFeatures: Int,
-  val stepSize: Double,
-  val regularizationFactor: Double) extends LinearClassifier {
+  val initStepSize: Double,
+  val regParam: Double,
+  val stepSize: (Double, Int) => Double = { (initStepSize, _) =>
+    initStepSize
+  }) extends LinearClassifier {
 
   import DistributedLogisticRegression._
 
@@ -30,6 +33,7 @@ class DistributedLogisticRegression(
    */
   def train(data: LabeledDataset,
             numIterations: Int,
+            stopLoss: Double = Double.NegativeInfinity,
             init: Option[DenseMatrix[Double]] = None)
            (implicit sc: SparkContext): Unit = {
     _params = init getOrElse DenseMatrix.fill(numClasses, numFeatures)((Random.nextDouble - 0.5) / 1e3)
@@ -38,21 +42,28 @@ class DistributedLogisticRegression(
 
     _iterationInfo = ArrayBuffer.empty
 
-    val start = System.currentTimeMillis
+    val distData = sc.parallelize(data.shuffled.split(numMachines))
 
-    for (_ <- 0 until numIterations) {
-      val iterStart = System.currentTimeMillis
+    val start = System.currentTimeMillis
+    for (i <- 0 until numIterations) {
+      println(s"@@@ $i")
 
       // Perform one map-reduce update
-      val distData = sc.parallelize(data.shuffle.split(numMachines))
-      update(distData)
-
+      val iterStart = System.currentTimeMillis
+      update(i, distData)
       val iterStop = System.currentTimeMillis
 
       _iterationInfo += IterationInfo(
         loss(data),
         Duration.ofMillis(iterStop - iterStart),
         Duration.ofMillis(iterStop - start))
+
+      // Stop training if specified stop loss has been achieved
+      val lastIters = iterationInfo.takeRight(5) map (_.loss)
+      println(s"  Loss: ${lastIters.sum / lastIters.length}")
+      if (lastIters.sum / lastIters.length <= stopLoss) {
+        return
+      }
     }
   }
 
@@ -61,11 +72,11 @@ class DistributedLogisticRegression(
    *  @param data training datasets
    *  @param sc Spark context
    */
-  private[this] def update(data: RDD[LabeledDataset])(implicit sc: SparkContext): Unit = {
+  private[this] def update(iteration: Int, data: RDD[LabeledDataset])(implicit sc: SparkContext): Unit = {
     val k = numClasses
     val d = numFeatures
-    val γ = stepSize
-    val λ = regularizationFactor
+    val γ = stepSize(initStepSize, iteration) / numMachines  // Splash
+    val λ = regParam
     val currentParams = sc.broadcast(params)
 
     params := new DenseMatrix(
@@ -73,7 +84,7 @@ class DistributedLogisticRegression(
       numFeatures,
       data map { localData =>
         val regr = new LogisticRegression(k, d, γ, λ)
-        regr.train(localData, Some(currentParams.value))
+        regr.train(localData.shuffled, Some(currentParams.value))
 
         regr.params.data
       } reduce { (p1, p2) =>
@@ -102,7 +113,7 @@ class DistributedLogisticRegression(
     l /= data.length
 
     // L2 regularization
-    val h = regularizationFactor * squaredNorm(params)
+    val h = 0.5 * regParam * squaredNorm(params)
 
     l + h
   }

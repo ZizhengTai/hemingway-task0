@@ -1,5 +1,7 @@
 package hemingway
 
+import breeze.linalg.shuffle
+
 case class LabeledDataset(labels: Array[Int], features: Array[Array[Double]]) {
   require(labels.length == features.length)
 
@@ -19,8 +21,7 @@ case class LabeledDataset(labels: Array[Int], features: Array[Array[Double]]) {
     }
   }
 
-  def shuffle: LabeledDataset = {
-    val shuffled = breeze.linalg.shuffle(labels zip features)
-    (LabeledDataset.apply _).tupled(shuffled.unzip)
+  def shuffled: LabeledDataset = {
+    (LabeledDataset.apply _).tupled(shuffle(labels zip features).unzip)
   }
 }

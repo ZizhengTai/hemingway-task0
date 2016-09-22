@@ -1,11 +1,12 @@
 package hemingway
 
+import java.io.File
 import scala.util.Random
-import breeze.linalg._
+
+import breeze.numerics.{log2, pow}
 import breeze.plot._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.jfree.chart.axis.NumberTickUnit
-import org.jfree.ui.{HorizontalAlignment, RectangleEdge, VerticalAlignment}
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -13,17 +14,19 @@ object Main {
     val dataDir = args(0)
     val numClasses = args(1).toInt
     val stepSize = args(2).toDouble
-    val regularizationFactor = args(3).toDouble
-    val numIterations = args(4).toInt
-    val numMachines = args(5).toInt
-    val outputDir = args(6)
+    val numStepSizeIterations = args(3).toInt
+    val regParam = args(4).toDouble
+    val numIterations = args(5).toInt
+    val numMachines = args(6).toInt
+    val outputDir = args(7)
 
     // Create Spark context
     val conf = new SparkConf()
       .setAppName("hemingway-task0")
-      .setMaster(s"local[$numMachines]")
+        .setMaster("local[6]")
+      //.setMaster(s"local[$numMachines]")
     implicit val sc = new SparkContext(conf)
-    sc.setLogLevel("WARN")
+    sc.setLogLevel("ERROR")
 
     // Warm up Spark
     warmUp(numMachines)
@@ -32,18 +35,50 @@ object Main {
     val data = new MnistLoader(dataDir)
 
     // Regression for each number of machines
-    val results = Seq(1, 2, 4, 8) map { m =>
+    /*
+    case class Result(
+      stepSize: Double,
+      numStepSizeIterations: Int,
+      numIterationsToConverge: Int)
+
+    val configs = for {
+      stepSize <- Seq(1e-2, 8e-3)
+      numStepSizeIterations <- Seq(15, 20, 25, 30)
+    } yield (stepSize, numStepSizeIterations)
+    */
+
+    val results = Seq(1, 2, 4, 8, 16, 32, 64, 128) map { m =>
       val regr = new DistributedLogisticRegression(
         numMachines = m,
         numClasses = numClasses,
         numFeatures = data.trainImages(0).length,
-        stepSize = stepSize,
-        regularizationFactor = regularizationFactor)
+        initStepSize = stepSize,
+        stepSize = { (s, i) => s / pow(2, log2(i.toDouble / numStepSizeIterations + 1)) },
+        regParam = regParam)
 
-      regr.train(data.trainingSet, numIterations)
+      regr.train(
+        data = data.trainingSet,
+        numIterations = numIterations,
+        stopLoss = 0.238)
 
       regr
+
+      /*
+      println(s">>> Finished: $s $n ${regr.iterationInfo.length}")
+      new File(s"$outputDir/$s $n ${regr.iterationInfo.length}").createNewFile()
+
+      Result(s, n, regr.iterationInfo.length)
+      */
     }
+
+    /*
+    // Find configuration that converged fastest
+    val best = results.minBy(_.numIterationsToConverge)
+    println(s">>> Best configuration converged in ${best.numIterationsToConverge} iterations:")
+    println(s">>> stepSize = ${best.stepSize}, numStepSizeIterations = ${best.numStepSizeIterations}")
+    new File(s"$outputDir/Best ${best.stepSize} ${best.numStepSizeIterations} ${best.numIterationsToConverge}")
+      .createNewFile()
+    */
 
     // Plot results
     val fs = Seq.fill(3)(Figure())
@@ -58,8 +93,7 @@ object Main {
     // Training loss against iterations
     val allLosses = results flatMap (_.iterationInfo map (_.loss))
     val lossDiff = allLosses.max - allLosses.min
-    //ps(0).yaxis.setTickUnit(new NumberTickUnit(lossDiff / 10))
-    ps(0).yaxis.setAutoTickUnitSelection(true)
+    ps(0).yaxis.setTickUnit(new NumberTickUnit(lossDiff / 10))
     ps(0).xlabel = "Iterations"
     ps(0).ylabel = "Training loss"
 
@@ -73,15 +107,15 @@ object Main {
     ps(2).xlabel = "Total time (ms)"
     ps(2).ylabel = "Training loss"
 
-    for ((r, i) <- results zip Seq(1, 2, 4, 8)) {
+    for ((r, m) <- results zip Seq(1, 2, 4, 8, 16, 32, 64, 128)) {
       val iters = r.iterationInfo.indices map (1.0 + _)
       val losses = r.iterationInfo map (_.loss)
       val iterTime = r.iterationInfo map (_.iterTime.toMillis.toDouble)
       val totalTime = r.iterationInfo map (_.totalTime.toMillis.toDouble)
 
-      ps(0) += plot(iters, losses, name = i.toString)
-      ps(1) += plot(iters, iterTime, name = i.toString)
-      ps(2) += plot(totalTime, losses, name = i.toString)
+      ps(0) += plot(iters, losses, name = m.toString)
+      ps(1) += plot(iters, iterTime, name = m.toString)
+      ps(2) += plot(totalTime, losses, name = m.toString)
     }
 
     // Save all plots
@@ -107,8 +141,8 @@ object Main {
     val numDatapoints = 10000
     val numClasses = 10
     val numFeatures = 1000
-    val stepSize = 1e-3
-    val regularizationFactor = 1e-5
+    val initStepSize = 1e-3
+    val regParam = 1e-5
     val numIterations = 3
 
     val data = LabeledDataset(
@@ -119,8 +153,8 @@ object Main {
       numMachines = numMachines,
       numClasses = numClasses,
       numFeatures = numFeatures,
-      stepSize = stepSize,
-      regularizationFactor = regularizationFactor)
+      initStepSize = initStepSize,
+      regParam = regParam)
 
     regr.train(data, numIterations)
   }
