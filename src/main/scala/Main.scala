@@ -47,7 +47,7 @@ object Main {
     } yield (stepSize, numStepSizeIterations)
     */
 
-    val results = Seq(1, 2, 4, 8, 16, 32, 64, 128) map { m =>
+    val results = Seq(1, 8, 32) map { m =>
       val regr = new DistributedLogisticRegression(
         numMachines = m,
         numClasses = numClasses,
@@ -107,7 +107,7 @@ object Main {
     ps(2).xlabel = "Total time (ms)"
     ps(2).ylabel = "Training loss"
 
-    for ((r, m) <- results zip Seq(1, 2, 4, 8, 16, 32, 64, 128)) {
+    for ((r, m) <- results zip Seq(1, 8, 32)) {
       val iters = r.iterationInfo.indices map (1.0 + _)
       val losses = r.iterationInfo map (_.loss)
       val iterTime = r.iterationInfo map (_.iterTime.toMillis.toDouble)
@@ -145,9 +145,9 @@ object Main {
     val regParam = 1e-5
     val numIterations = 3
 
-    val data = LabeledDataset(
-      labels = Array.fill(numDatapoints)(Random.nextInt(numClasses)),
-      features = Array.fill(numDatapoints, numFeatures)(Random.nextDouble))
+    val data =
+      (Array.fill(numDatapoints)(Random.nextInt(numClasses)),
+       Array.fill(numDatapoints, numFeatures)(Random.nextDouble)).zipped map LabeledPoint
 
     val regr = new DistributedLogisticRegression(
       numMachines = numMachines,

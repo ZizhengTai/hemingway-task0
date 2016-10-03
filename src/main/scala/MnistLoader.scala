@@ -61,6 +61,6 @@ class MnistLoader(path: String) {
   val testImages = getImages("t10k-images.idx3-ubyte", false)
   val testLabels = getLabels("t10k-labels.idx1-ubyte", false)
 
-  val trainingSet = LabeledDataset(trainLabels, trainImages)
-  val testSet = LabeledDataset(testLabels, testImages)
+  val trainingSet = (trainLabels, trainImages).zipped map LabeledPoint
+  val testSet = (testLabels, testImages).zipped map LabeledPoint
 }

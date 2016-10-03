@@ -16,15 +16,15 @@ class LogisticRegression(
    *  @param data training dataset
    *  @param init initial model parameters
    */
-  def train(data: LabeledDataset, init: Option[DenseMatrix[Double]] = None): Unit = {
+  def train(data: IndexedSeq[LabeledPoint], init: Option[DenseMatrix[Double]] = None): Unit = {
     _params = init getOrElse DenseMatrix.fill(numClasses, numFeatures)((Random.nextDouble - 0.5) / 1e3)
     assert(params.rows == numClasses)
     assert(params.cols == numFeatures)
 
     val gradBuffer = DenseMatrix.zeros[Double](numClasses, numFeatures)
 
-    (data.features, data.labels).zipped foreach { (x, y) =>
-      update(DenseVector(x), y, gradBuffer)
+    for (pt <- data) {
+      update(DenseVector(pt.features), pt.label, gradBuffer)
     }
   }
 

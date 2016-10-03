@@ -31,7 +31,7 @@ class DistributedLogisticRegression(
    *  @param init initial model parameters
    *  @param sc Spark context
    */
-  def train(data: LabeledDataset,
+  def train(data: Seq[LabeledPoint],
             numIterations: Int,
             stopLoss: Double = Double.NegativeInfinity,
             init: Option[DenseMatrix[Double]] = None)
@@ -42,11 +42,11 @@ class DistributedLogisticRegression(
 
     _iterationInfo = ArrayBuffer.empty
 
-    val distData = sc.parallelize(data.shuffled.split(numMachines))
+    val distData = sc.parallelize(breeze.linalg.shuffle(data.toArray), numMachines)
 
     val start = System.currentTimeMillis
     for (i <- 0 until numIterations) {
-      println(s"@@@ $i")
+      println(s"Iteration $i")
 
       // Perform one map-reduce update
       val iterStart = System.currentTimeMillis
@@ -72,7 +72,7 @@ class DistributedLogisticRegression(
    *  @param data training datasets
    *  @param sc Spark context
    */
-  private[this] def update(iteration: Int, data: RDD[LabeledDataset])(implicit sc: SparkContext): Unit = {
+  private[this] def update(iteration: Int, data: RDD[LabeledPoint])(implicit sc: SparkContext): Unit = {
     val k = numClasses
     val d = numFeatures
     val γ = stepSize(initStepSize, iteration) / numMachines  // Splash
@@ -82,11 +82,10 @@ class DistributedLogisticRegression(
     params := new DenseMatrix(
       numClasses,
       numFeatures,
-      data map { localData =>
+      data mapPartitions { (iter: Iterator[LabeledPoint]) =>
         val regr = new LogisticRegression(k, d, γ, λ)
-        regr.train(localData.shuffled, Some(currentParams.value))
-
-        regr.params.data
+        regr.train(iter.toIndexedSeq, Some(currentParams.value))
+        Iterator.single(regr.params.data)
       } reduce { (p1, p2) =>
         (DenseVector(p1) + DenseVector(p2)).data
       })
@@ -97,16 +96,16 @@ class DistributedLogisticRegression(
    *
    *  @param data the dataset to compute loss against
    */
-  def loss(data: LabeledDataset): Double = {
+  def loss(data: Seq[LabeledPoint]): Double = {
     def squaredNorm(m: DenseMatrix[Double]): Double = {
       val v = DenseVector(m.data)
       v dot v
     }
 
     var l = 0.0
-    for (i <- 0 until data.length) {
-      val x = DenseVector(data.features(i))
-      val y = data.labels(i)
+    for (pt <- data) {
+      val x = DenseVector(pt.features)
+      val y = pt.label
 
       l += -params.t(::, y).dot(x) + log(sum(exp(params * x)))
     }
