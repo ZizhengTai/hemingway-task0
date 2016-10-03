@@ -1,6 +1,3 @@
-package hemingway
-
-import java.io.File
 import scala.util.Random
 
 import breeze.numerics.{log2, pow}
@@ -9,6 +6,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.jfree.chart.axis.NumberTickUnit
 
 object Main {
+  import hemingway._
+
   def main(args: Array[String]): Unit = {
     // Extract arguments
     val dataDir = args(0)
@@ -23,8 +22,8 @@ object Main {
     // Create Spark context
     val conf = new SparkConf()
       .setAppName("hemingway-task0")
-        .setMaster("local[6]")
-      //.setMaster(s"local[$numMachines]")
+      //.setMaster("local[8]")
+      .setMaster(s"local[$numMachines]")
     implicit val sc = new SparkContext(conf)
     sc.setLogLevel("ERROR")
 
@@ -93,6 +92,7 @@ object Main {
     // Training loss against iterations
     val allLosses = results flatMap (_.iterationInfo map (_.loss))
     val lossDiff = allLosses.max - allLosses.min
+    //ps(0).logScaleY = true
     ps(0).yaxis.setTickUnit(new NumberTickUnit(lossDiff / 10))
     ps(0).xlabel = "Iterations"
     ps(0).ylabel = "Training loss"
