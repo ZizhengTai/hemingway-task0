@@ -21,8 +21,8 @@ class DistributedLogisticRegression(
 
   import DistributedLogisticRegression._
 
-  def iterationInfo: Seq[IterationInfo] = _iterationInfo
-  private[this] var _iterationInfo: ArrayBuffer[IterationInfo] = _
+  def iterationLogs: Seq[IterationLog] = _iterationLogs
+  private[this] var _iterationLogs: ArrayBuffer[IterationLog] = _
 
   /** Trains the model on the given dataset.
    *
@@ -40,9 +40,9 @@ class DistributedLogisticRegression(
     assert(params.rows == numClasses)
     assert(params.cols == numFeatures)
 
-    _iterationInfo = ArrayBuffer.empty
+    _iterationLogs = ArrayBuffer.empty
 
-    val distData = sc.parallelize(breeze.linalg.shuffle(data.toArray), numMachines)
+    val distData = sc.parallelize(breeze.linalg.shuffle(data.toArray), numMachines).cache()
 
     val start = System.currentTimeMillis
     for (i <- 0 until numIterations) {
@@ -53,13 +53,14 @@ class DistributedLogisticRegression(
       update(i, distData)
       val iterStop = System.currentTimeMillis
 
-      _iterationInfo += IterationInfo(
+      _iterationLogs += IterationLog(
+        i,
         loss(data),
         Duration.ofMillis(iterStop - iterStart),
         Duration.ofMillis(iterStop - start))
 
       // Stop training if specified stop loss has been achieved
-      val lastIters = iterationInfo.takeRight(5) map (_.loss)
+      val lastIters = iterationLogs.takeRight(5) map (_.loss)
       println(s"  Loss: ${lastIters.sum / lastIters.length}")
       if (lastIters.sum / lastIters.length <= stopLoss) {
         return
@@ -119,5 +120,5 @@ class DistributedLogisticRegression(
 }
 
 object DistributedLogisticRegression {
-  case class IterationInfo(loss: Double, iterTime: Duration, totalTime: Duration)
+  case class IterationLog(iteration: Int, loss: Double, iterTime: Duration, totalTime: Duration)
 }

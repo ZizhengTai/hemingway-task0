@@ -1,12 +1,13 @@
 import scala.util.Random
-
 import breeze.numerics.{log2, pow}
 import breeze.plot._
+import hemingway.utils.OptUtils
 import org.apache.spark.{SparkConf, SparkContext}
 import org.jfree.chart.axis.NumberTickUnit
 
 object Main {
   import hemingway._
+  import hemingway.solvers.CoCoA
 
   def main(args: Array[String]): Unit = {
     // Extract arguments
@@ -45,6 +46,9 @@ object Main {
       numStepSizeIterations <- Seq(15, 20, 25, 30)
     } yield (stepSize, numStepSizeIterations)
     */
+
+    // Read in data
+    //val data = OptUtils.loadLIBSVMData(sc, "xxx", numMachines, )
 
     val results = Seq(1, 8, 32) map { m =>
       val regr = new DistributedLogisticRegression(
@@ -90,7 +94,7 @@ object Main {
     ps foreach (_.legend = true)
 
     // Training loss against iterations
-    val allLosses = results flatMap (_.iterationInfo map (_.loss))
+    val allLosses = results flatMap (_.iterationLogs map (_.loss))
     val lossDiff = allLosses.max - allLosses.min
     //ps(0).logScaleY = true
     ps(0).yaxis.setTickUnit(new NumberTickUnit(lossDiff / 10))
@@ -108,10 +112,10 @@ object Main {
     ps(2).ylabel = "Training loss"
 
     for ((r, m) <- results zip Seq(1, 8, 32)) {
-      val iters = r.iterationInfo.indices map (1.0 + _)
-      val losses = r.iterationInfo map (_.loss)
-      val iterTime = r.iterationInfo map (_.iterTime.toMillis.toDouble)
-      val totalTime = r.iterationInfo map (_.totalTime.toMillis.toDouble)
+      val iters = r.iterationLogs.indices map (1.0 + _)
+      val losses = r.iterationLogs map (_.loss)
+      val iterTime = r.iterationLogs map (_.iterTime.toMillis.toDouble)
+      val totalTime = r.iterationLogs map (_.totalTime.toMillis.toDouble)
 
       ps(0) += plot(iters, losses, name = m.toString)
       ps(1) += plot(iters, iterTime, name = m.toString)
